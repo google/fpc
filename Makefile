@@ -1,5 +1,5 @@
 fpc: fpc.c
-	gcc fpc.c -lm -o fpc
+	gcc -g fpc.c -lm -o fpc
 
 .PHONY: clean
 clean:
