@@ -46,7 +46,7 @@ int floor_log2l(long double x) {
 }
 
 unsigned int int_log2(unsigned int x) {
-  return x == 0 ? 0 : (8 * sizeof(x)) - __builtin_clz(x);
+  return x <= 1 ? 0 : (8 * sizeof(x)) - __builtin_clz(x - 1);
 }
 
 bool calculate(struct parameters *param) {
@@ -59,10 +59,10 @@ bool calculate(struct parameters *param) {
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
-  param->integer_bits = ceil_log2l(param->max - param->min);
+  param->integer_bits = ceil_log2l(param->max - param->min + param->precision);
   param->fixed_encoding_width = param->fractional_bits + param->integer_bits;
   param->lower_bound = floorl(ldexpl(param->min, param->fractional_bits));
-  param->upper_bound = floorl(ldexpl(param->max, param->fractional_bits));
+  param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
   if(param->fixed_encoding_width > 64) {
     printf("ERROR: fixed_encoding_width > 64\n");
     return false;
@@ -95,27 +95,44 @@ bool calculate(struct parameters *param) {
 }
 
 void convert_to_double(struct parameters *param) {
-  printf("// can lose precision, for display only\n"
+  int128_t
+    ub = param->upper_bound - param->offset,
+    lb = param->lower_bound - param->offset;
+  printf("#include <math.h>\n"
+         "#include <stdint.h>\n"
+         "// can lose precision, for display only\n"
          "double convert_to_double(%s%d_t x) {\n",
          param->use_signed ? "int" : "uint", param->fixed_encoding_width);
-  printf("  if(x >= %lld && x < %lld) {\n",
-         (long long int)(param->lower_bound - param->offset),
-         (long long int)(param->upper_bound - param->offset));
+  if(param->use_signed || lb) {
+    printf("  if(x >= %1$s%2$d_C(%3$lld) &&\n"
+           "     x < %1$s%2$d_C(%4$lld)) {\n",
+           param->use_signed ? "INT" : "UINT",
+           param->fixed_encoding_width,
+           (long long int)lb,
+           (long long int)ub);
+  } else {
+    printf("  if(x < %1$s%2$d_C(%3$lld)) {\n",
+           param->use_signed ? "INT" : "UINT",
+           param->fixed_encoding_width,
+           (long long int)ub);
+  }
   if(param->offset) {
-    printf("    return ldexp(x, %d) - %Lf;\n",
+    printf("    return ldexp(x, %d) + %Lf;\n",
            -param->fractional_bits, ldexpl(param->offset, -param->fractional_bits));
   } else {
     printf("    return ldexp(x, %d);\n",
            -param->fractional_bits);
   }
-  printf("} else {\n"
-         "  return NAN;\n"
+  printf("  } else {\n"
+         "    // invalid input\n"
+         "    return NAN;\n"
+         "  }\n"
          "}\n");
 }
 
 void print_params(struct parameters *param) {
   printf("min = %Lf (%Lf)\n", ldexpl(param->lower_bound, -param->fractional_bits), param->min);
-  printf("max = %Lf (%Lf)\n", ldexpl(param->upper_bound - 1, -param->fractional_bits), param->max - param->precision);
+  printf("max = %Lf (%Lf)\n", ldexpl(param->upper_bound, -param->fractional_bits), param->max);
   printf("requested precision = %Lf\n", param->precision);
   long double actual_precision = ldexpl(1.0L, -param->fractional_bits);
   printf("actual precision = %Lf\n", actual_precision);
@@ -145,7 +162,6 @@ int main(int argc, char **argv) {
   param.min = strtold(argv[1], NULL);
   param.max = strtold(argv[2], NULL);
   param.precision = strtold(argv[3], NULL);
-  param.max += param.precision;
 
   if(calculate(&param)) {
     print_params(&param);
