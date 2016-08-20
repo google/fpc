@@ -96,8 +96,9 @@ bool calculate(struct parameters *param) {
 
 void convert_to_double(struct parameters *param) {
   int128_t
-    ub = param->upper_bound - param->offset,
-    lb = param->lower_bound - param->offset;
+    lb = param->lower_bound - param->offset,
+    ub = param->upper_bound - param->offset;
+  unsigned int dec_precision = fmaxl(0.0L, ceill(-log10l(param->precision))) + 1.0L;
   printf("#include <math.h>\n"
          "#include <stdint.h>\n"
          "// can lose precision, for display only\n"
@@ -105,23 +106,39 @@ void convert_to_double(struct parameters *param) {
          param->use_signed ? "int" : "uint", param->fixed_encoding_width);
   if(param->use_signed || lb) {
     printf("  if(x >= %1$s%2$d_C(%3$lld) &&\n"
-           "     x < %1$s%2$d_C(%4$lld)) {\n",
+           "     x <= %1$s%2$d_C(%4$lld)) {\n",
            param->use_signed ? "INT" : "UINT",
            param->fixed_encoding_width,
            (long long int)lb,
            (long long int)ub);
   } else {
-    printf("  if(x < %1$s%2$d_C(%3$lld)) {\n",
+    printf("  if(x <= %1$s%2$d_C(%3$lld)) {\n",
            param->use_signed ? "INT" : "UINT",
            param->fixed_encoding_width,
            (long long int)ub);
   }
   if(param->offset) {
-    printf("    return ldexp(x, %d) + %Lf;\n",
-           -param->fractional_bits, ldexpl(param->offset, -param->fractional_bits));
+    if(param->precision == 1.0L) {
+      printf("    return ldexp(x, %d) + %.*Lf;\n",
+             -param->fractional_bits,
+             dec_precision, ldexpl(param->offset, -param->fractional_bits));
+    } else {
+      printf("    return round((ldexp(x, %d) + %.*Lf) / %.*Lf) * %.*Lf;\n",
+             -param->fractional_bits,
+             dec_precision, ldexpl(param->offset, -param->fractional_bits),
+             dec_precision, param->precision,
+             dec_precision, param->precision);
+    }
   } else {
-    printf("    return ldexp(x, %d);\n",
-           -param->fractional_bits);
+    if(param->precision == 1.0L) {
+      printf("    return ldexp(x, %d);\n",
+             -param->fractional_bits);
+    } else {
+      printf("    return round((ldexp(x, %d) / %.*Lf) * %.*Lf;\n",
+             -param->fractional_bits,
+             dec_precision, param->precision,
+             dec_precision, param->precision);
+    }
   }
   printf("  } else {\n"
          "    // invalid input\n"
@@ -131,24 +148,31 @@ void convert_to_double(struct parameters *param) {
 }
 
 void print_params(struct parameters *param) {
-  printf("min = %Lf (%Lf)\n", ldexpl(param->lower_bound, -param->fractional_bits), param->min);
-  printf("max = %Lf (%Lf)\n", ldexpl(param->upper_bound, -param->fractional_bits), param->max);
-  printf("requested precision = %Lf\n", param->precision);
+  unsigned int dec_precision = fmaxl(0.0L, ceill(-log10l(param->precision))) + 1.0L;
+  printf("min: %.*Lf (%.*Lf)\n",
+         dec_precision, ldexpl(param->lower_bound, -param->fractional_bits),
+         dec_precision, param->min);
+  printf("max: %.*Lf (%.*Lf)\n",
+         dec_precision, ldexpl(param->upper_bound, -param->fractional_bits),
+         dec_precision, param->max);
   long double actual_precision = ldexpl(1.0L, -param->fractional_bits);
-  printf("actual precision = %Lf\n", actual_precision);
-  printf("code density = %.1Lf%%\n", 100L * actual_precision / param->precision);
+  printf("precision: %.*Lf (%.*Lf)\n",
+         dec_precision, actual_precision,
+         dec_precision, param->precision);
+  printf("code density: %.1Lf%%\n", 100L * actual_precision / param->precision);
   if(param->large_offset) {
-    printf("offset ~= %Le\n", (long double)param->offset);
+    printf("offset: about %Le\n", (long double)param->offset);
   } else {
-    printf("offset = %" PRId64 "\n", (int64_t)param->offset);
+    printf("offset: %" PRId64 "\n", (int64_t)param->offset);
   }
-  printf("lower_bound - offset = %" PRId64 "\n", (int64_t)(param->lower_bound - param->offset));
-  printf("upper_bound - offset = %" PRId64 "\n", (int64_t)(param->upper_bound - param->offset));
-  printf("fixed_encoding_width = %d\n", param->fixed_encoding_width);
-  printf("fractional_bits = %d\n", param->fractional_bits);
-  printf("integer_bits = %d\n", param->integer_bits);
-  printf("use_signed = %s\n", param->use_signed ? "yes" : "no");
-  printf("machine integer type = %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
+  printf("code range: [%" PRId64 ", %" PRId64 "]\n",
+         (int64_t)(param->lower_bound - param->offset),
+         (int64_t)(param->upper_bound - param->offset));
+  printf("machine bit width: %d\n", param->fixed_encoding_width);
+  printf("fractional bits: %d\n", param->fractional_bits);
+  printf("integer bits: %d\n", param->integer_bits);
+  printf("use signed: %s\n", param->use_signed ? "yes" : "no");
+  printf("machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
   printf("\n");
   convert_to_double(param);
 }
