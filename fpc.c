@@ -94,11 +94,15 @@ bool calculate(struct parameters *param) {
   return true;
 }
 
+#define max(x, y) ((y) > (x) ? (y) : (x))
+
 void convert_to_double(struct parameters *param) {
   int128_t
     lb = param->lower_bound - param->offset,
     ub = param->upper_bound - param->offset;
-  unsigned int dec_precision = fmaxl(0.0L, ceill(-log10l(param->precision))) + 1.0L;
+  int dec_precision = roundl(-log10l(param->precision));
+  int inv_dec_precision = max(0, -dec_precision) + 1;
+  dec_precision = max(0, dec_precision) + 1;
   printf("#include <math.h>\n"
          "#include <stdint.h>\n"
          "// can lose precision, for display only\n"
@@ -123,10 +127,12 @@ void convert_to_double(struct parameters *param) {
              -param->fractional_bits,
              dec_precision, ldexpl(param->offset, -param->fractional_bits));
     } else {
-      printf("    return round((ldexp(x, %d) + %.*Lf) / %.*Lf) * %.*Lf;\n",
+      printf("    return fmax(%.*Lf, fmin(%.*Lf, round((ldexp(x, %d) + %.*Lf) * %.*Lf) * %.*Lf));\n",
+             dec_precision, param->min,
+             dec_precision, param->max,
              -param->fractional_bits,
              dec_precision, ldexpl(param->offset, -param->fractional_bits),
-             dec_precision, param->precision,
+             inv_dec_precision, 1.0L / param->precision,
              dec_precision, param->precision);
     }
   } else {
@@ -134,9 +140,11 @@ void convert_to_double(struct parameters *param) {
       printf("    return ldexp(x, %d);\n",
              -param->fractional_bits);
     } else {
-      printf("    return round((ldexp(x, %d) / %.*Lf) * %.*Lf;\n",
+      printf("    return fmax(%.*Lf, fmin(%.*Lf, round((ldexp(x, %d) * %.*Lf) * %.*Lf)));\n",
+             dec_precision, param->min,
+             dec_precision, param->max,
              -param->fractional_bits,
-             dec_precision, param->precision,
+             inv_dec_precision, 1.0L / param->precision,
              dec_precision, param->precision);
     }
   }
