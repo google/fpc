@@ -100,10 +100,6 @@ void convert_to_double(struct parameters *param) {
   int128_t
     lb = param->lower_bound - param->offset,
     ub = param->upper_bound - param->offset;
-  double log_range = log10l(param->max - param->min);
-  double log_precision = log10l(param->precision);
-  int inv_dec_precision = max(0, round(log_range + log_precision)) + 1;
-  int dec_precision = max(0, round(log_range - log_precision)) + 1;
   printf("#include <math.h>\n"
          "#include <stdint.h>\n"
          "// can lose precision, for display only\n"
@@ -124,29 +120,29 @@ void convert_to_double(struct parameters *param) {
   }
   if(param->offset) {
     if(param->precision == 1.0L) {
-      printf("    return ldexp(x, %d) + %.*Lf;\n",
+      printf("    return ldexp(x, %d) + %Lf;\n",
              -param->fractional_bits,
-             dec_precision, ldexpl(param->offset, -param->fractional_bits));
+             ldexpl(param->offset, -param->fractional_bits));
     } else {
-      printf("    return fmax(%.*Lf, fmin(%.*Lf, round((ldexp(x, %d) + %.*Lf) * %.*Lf) * %.*Lf));\n",
-             dec_precision, param->min,
-             dec_precision, param->max,
+      printf("    return fmax(%Lg, fmin(%Lg, round((ldexp(x, %d) + %Lg) * %Lg) * %Lg));\n",
+             param->min,
+             param->max,
              -param->fractional_bits,
-             dec_precision, ldexpl(param->offset, -param->fractional_bits),
-             inv_dec_precision, 1.0L / param->precision,
-             dec_precision, param->precision);
+             ldexpl(param->offset, -param->fractional_bits),
+             1.0L / param->precision,
+             param->precision);
     }
   } else {
     if(param->precision == 1.0L) {
       printf("    return ldexp(x, %d);\n",
              -param->fractional_bits);
     } else {
-      printf("    return fmax(%.*Lf, fmin(%.*Lf, round((ldexp(x, %d) * %.*Lf) * %.*Lf)));\n",
-             dec_precision, param->min,
-             dec_precision, param->max,
+      printf("    return fmax(%Lg, fmin(%Lg, round((ldexp(x, %d) * %Lg) * %Lg)));\n",
+             param->min,
+             param->max,
              -param->fractional_bits,
-             inv_dec_precision, 1.0L / param->precision,
-             dec_precision, param->precision);
+             1.0L / param->precision,
+             param->precision);
     }
   }
   printf("  } else {\n"
@@ -157,22 +153,19 @@ void convert_to_double(struct parameters *param) {
 }
 
 void print_params(struct parameters *param) {
-  double log_range = log10l(param->max - param->min);
-  double log_precision = log10l(param->precision);
-  int dec_precision = max(0, round(log_range - log_precision)) + 1;
-  printf("min: %.*Lf (%.*Lf)\n",
-         dec_precision, ldexpl(param->lower_bound, -param->fractional_bits),
-         dec_precision, param->min);
-  printf("max: %.*Lf (%.*Lf)\n",
-         dec_precision, ldexpl(param->upper_bound, -param->fractional_bits),
-         dec_precision, param->max);
+  printf("min: %Lg (%Lg)\n",
+         ldexpl(param->lower_bound, -param->fractional_bits),
+         param->min);
+  printf("max: %Lg (%Lg)\n",
+         ldexpl(param->upper_bound, -param->fractional_bits),
+         param->max);
   long double actual_precision = ldexpl(1.0L, -param->fractional_bits);
-  printf("precision: %.*Lf (%.*Lf)\n",
-         dec_precision, actual_precision,
-         dec_precision, param->precision);
+  printf("precision: %Lg (%Lg)\n",
+         actual_precision,
+         param->precision);
   printf("code density: %.1Lf%%\n", 100L * actual_precision / param->precision);
   if(param->large_offset) {
-    printf("offset: about %Le\n", (long double)param->offset);
+    printf("offset: about %Lg\n", (long double)param->offset);
   } else {
     printf("offset: %" PRId64 "\n", (int64_t)param->offset);
   }
