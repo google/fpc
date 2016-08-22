@@ -75,7 +75,7 @@ bool calculate(struct parameters *param) {
   param->offset = param->lower_bound;
   param->large_offset = false;
   if(param->offset > (((int128_t)1) << 63) - 1 &&
-     param->offset < (((int128_t)-1) << 63)) {
+     param->offset < -(((int128_t)1) << 63)) {
     printf("WARNING: really large offset\n");
     param->large_offset = true;
   }
@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
 
   if(calculate(&param)) {
     print_params(&param);
+    return 0;
   } else {
     return -1;
   }
