@@ -137,7 +137,7 @@ void convert_to_double(struct parameters *param) {
       printf("    return ldexp(x, %d);\n",
              -param->fractional_bits);
     } else {
-      printf("    return fmax(%Lg, fmin(%Lg, round((ldexp(x, %d) * %Lg) * %Lg)));\n",
+      printf("    return fmax(%Lg, fmin(%Lg, round(ldexp(x, %d) * %Lg) * %Lg));\n",
              param->min,
              param->max,
              -param->fractional_bits,
