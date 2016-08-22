@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <inttypes.h>
+#include <string.h>
 
 typedef __int128_t int128_t;
 
@@ -96,7 +97,8 @@ bool calculate(struct parameters *param) {
 
 #define max(x, y) ((y) > (x) ? (y) : (x))
 
-void convert_to_double(struct parameters *param) {
+void convert_to_double(struct parameters *param, FILE *f) {
+#define printf(...) fprintf(f, __VA_ARGS__)
   int128_t
     lb = param->lower_bound - param->offset,
     ub = param->upper_bound - param->offset;
@@ -150,6 +152,7 @@ void convert_to_double(struct parameters *param) {
          "    return NAN;\n"
          "  }\n"
          "}\n");
+#undef printf
 }
 
 void print_params(struct parameters *param) {
@@ -178,14 +181,39 @@ void print_params(struct parameters *param) {
   printf("use signed: %s\n", param->use_signed ? "yes" : "no");
   printf("machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
   printf("\n");
-  convert_to_double(param);
+  convert_to_double(param, stdout);
+}
+
+void gen_converter(struct parameters *param) {
+  FILE *f = fopen("convert.c", "w");
+  fprintf(f,
+          "#include <stdio.h>\n"
+          "#include <stdlib.h>\n\n");
+  convert_to_double(param, f);
+  fprintf(f,
+          "\n"
+          "int main(int argc, char **argv) {\n"
+          "  int i;\n"
+          "  argv++; argc--; // skip first arg\n"
+          "  for(i = 0; i < argc; i++) {\n"
+          "    long int x = strtol(argv[i], NULL, 10);\n"
+          "    printf(\"%%ld -> %%f\\n\", x, convert_to_double(x));\n"
+          "  }\n"
+          "  return 0;\n"
+          "}\n");
+  fclose(f);
 }
 
 int main(int argc, char **argv) {
   struct parameters param;
+  bool gen = false;
   if(argc <= 3) {
     printf("fpc [min] [max] [precision]\n");
     return -1;
+  }
+  if(strcmp(argv[1], "-g") == 0) {
+    gen = true;
+    argv++;
   }
   param.min = strtold(argv[1], NULL);
   param.max = strtold(argv[2], NULL);
@@ -193,6 +221,7 @@ int main(int argc, char **argv) {
 
   if(calculate(&param)) {
     print_params(&param);
+    if(gen) gen_converter(&param);
     return 0;
   } else {
     return -1;
