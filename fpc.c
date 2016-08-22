@@ -100,9 +100,10 @@ void convert_to_double(struct parameters *param) {
   int128_t
     lb = param->lower_bound - param->offset,
     ub = param->upper_bound - param->offset;
-  int dec_precision = roundl(-log10l(param->precision));
-  int inv_dec_precision = max(0, -dec_precision) + 2;
-  dec_precision = max(0, dec_precision) + 1;
+  double log_range = log10l(param->max - param->min);
+  double log_precision = log10l(param->precision);
+  int inv_dec_precision = max(0, round(log_range + log_precision)) + 1;
+  int dec_precision = max(0, round(log_range - log_precision)) + 1;
   printf("#include <math.h>\n"
          "#include <stdint.h>\n"
          "// can lose precision, for display only\n"
@@ -156,7 +157,9 @@ void convert_to_double(struct parameters *param) {
 }
 
 void print_params(struct parameters *param) {
-  unsigned int dec_precision = fmaxl(0.0L, ceill(-log10l(param->precision))) + 1.0L;
+  double log_range = log10l(param->max - param->min);
+  double log_precision = log10l(param->precision);
+  int dec_precision = max(0, round(log_range - log_precision)) + 1;
   printf("min: %.*Lf (%.*Lf)\n",
          dec_precision, ldexpl(param->lower_bound, -param->fractional_bits),
          dec_precision, param->min);
