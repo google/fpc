@@ -101,7 +101,7 @@ void convert_to_double(struct parameters *param) {
     lb = param->lower_bound - param->offset,
     ub = param->upper_bound - param->offset;
   int dec_precision = roundl(-log10l(param->precision));
-  int inv_dec_precision = max(0, -dec_precision) + 1;
+  int inv_dec_precision = max(0, -dec_precision) + 2;
   dec_precision = max(0, dec_precision) + 1;
   printf("#include <math.h>\n"
          "#include <stdint.h>\n"
