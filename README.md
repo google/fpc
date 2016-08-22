@@ -4,6 +4,8 @@ This program takes a range [min, max] and precision and calculates constants and
 
 # Try it!
 
+    $ git clone ssh://git@stash.nestlabs.com:7999/user/fpc.git
+    $ make
     $ ./fpc 30 1800 0.1
     min: 30.00 (30.00)
     max: 1800.00 (1800.00)
