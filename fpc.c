@@ -32,6 +32,8 @@ struct parameters {
   bool
     use_signed,
     large_offset;
+
+  const char *error;
 };
 
 int ceil_log2l(long double x) {
@@ -52,11 +54,11 @@ unsigned int int_log2(unsigned int x) {
 
 bool calculate(struct parameters *param) {
   if(param->max < param->min + param->precision) {
-    printf("ERROR: max < min + precision\n");
+    param->error = "ERROR: max < min + precision";
     return false;
   }
   if(param->precision <= 0.0L) {
-    printf("ERROR: negative precision\n");
+    param->error = "ERROR: negative precision";
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
@@ -70,7 +72,7 @@ bool calculate(struct parameters *param) {
   if(round(ldexpl(param->upper_bound, -param->fractional_bits) / param->precision) * param->precision < param->max) param->upper_bound++;
 
   if(param->fixed_encoding_width > 64) {
-    printf("ERROR: fixed_encoding_width > 64\n");
+    param->error = "ERROR: fixed_encoding_width > 64";
     return false;
   }
   if(param->fixed_encoding_width < 8) { // could disable this lower bound to support packed formats
@@ -82,7 +84,6 @@ bool calculate(struct parameters *param) {
   param->large_offset = false;
   if(param->offset > (((int128_t)1) << 63) - 1 &&
      param->offset < -(((int128_t)1) << 63)) {
-    printf("WARNING: really large offset\n");
     param->large_offset = true;
   }
   param->use_signed = false;
@@ -221,6 +222,7 @@ void gen_converter(struct parameters *param) {
 
 int main(int argc, char **argv) {
   struct parameters param;
+  memset(&param, 0, sizeof(param));
   bool gen = false;
   if(argc <= 3) {
     printf("fpc [min] [max] [precision]\n");
@@ -239,6 +241,7 @@ int main(int argc, char **argv) {
     if(gen) gen_converter(&param);
     return 0;
   } else {
+    fprintf(stderr, "%s\n", param.error);
     return -1;
   }
 }
