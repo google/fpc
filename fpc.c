@@ -64,6 +64,11 @@ bool calculate(struct parameters *param) {
   param->fixed_encoding_width = param->fractional_bits + param->integer_bits;
   param->lower_bound = floorl(ldexpl(param->min, param->fractional_bits));
   param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
+
+  // push out bounds slightly if needed due to rounding
+  if(round(ldexpl(param->lower_bound, -param->fractional_bits) / param->precision) * param->precision > param->min) param->lower_bound--;
+  if(round(ldexpl(param->upper_bound, -param->fractional_bits) / param->precision) * param->precision < param->max) param->upper_bound++;
+
   if(param->fixed_encoding_width > 64) {
     printf("ERROR: fixed_encoding_width > 64\n");
     return false;
