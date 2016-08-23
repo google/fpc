@@ -126,7 +126,7 @@ void convert_to_double(struct parameters *param, FILE *f) {
              -param->fractional_bits,
              ldexpl(param->offset, -param->fractional_bits));
     } else {
-      printf("    return fmax(%Lg, fmin(%Lg, round((ldexp(x, %d) + %Lg) * %Lg) * %Lg));\n",
+      printf("    return fmax(%.20Lg, fmin(%.20Lg, round((ldexp(x, %d) + %.20Lg) * %.20Lg) * %.20Lg));\n",
              param->min,
              param->max,
              -param->fractional_bits,
@@ -139,7 +139,7 @@ void convert_to_double(struct parameters *param, FILE *f) {
       printf("    return ldexp(x, %d);\n",
              -param->fractional_bits);
     } else {
-      printf("    return fmax(%Lg, fmin(%Lg, round(ldexp(x, %d) * %Lg) * %Lg));\n",
+      printf("    return fmax(%.20Lg, fmin(%Lg, round(ldexp(x, %d) * %.20Lg) * %.20Lg));\n",
              param->min,
              param->max,
              -param->fractional_bits,
@@ -156,19 +156,19 @@ void convert_to_double(struct parameters *param, FILE *f) {
 }
 
 void print_params(struct parameters *param) {
-  printf("min: %Lg (%Lg)\n",
+  printf("min: %.20Lg (%.20Lg)\n",
          ldexpl(param->lower_bound, -param->fractional_bits),
          param->min);
-  printf("max: %Lg (%Lg)\n",
+  printf("max: %.20Lg (%.20Lg)\n",
          ldexpl(param->upper_bound, -param->fractional_bits),
          param->max);
   long double actual_precision = ldexpl(1.0L, -param->fractional_bits);
-  printf("precision: %Lg (%Lg)\n",
+  printf("precision: %.20Lg (%.20Lg)\n",
          actual_precision,
          param->precision);
   printf("code density: %.1Lf%%\n", 100L * actual_precision / param->precision);
   if(param->large_offset) {
-    printf("offset: about %Lg\n", (long double)param->offset);
+    printf("offset: about %.20Lg\n", (long double)param->offset);
   } else {
     printf("offset: %" PRId64 "\n", (int64_t)param->offset);
   }
@@ -197,7 +197,7 @@ void gen_converter(struct parameters *param) {
           "  argv++; argc--; // skip first arg\n"
           "  for(i = 0; i < argc; i++) {\n"
           "    long int x = strtol(argv[i], NULL, 10);\n"
-          "    printf(\"%%ld -> %%f\\n\", x, convert_to_double(x));\n"
+          "    printf(\"%%ld -> %%.15g\\n\", x, convert_to_double(x));\n"
           "  }\n"
           "  return 0;\n"
           "}\n");
