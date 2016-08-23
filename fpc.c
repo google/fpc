@@ -54,11 +54,11 @@ unsigned int int_log2(unsigned int x) {
 
 bool calculate(struct parameters *param) {
   if(param->max < param->min + param->precision) {
-    param->error = "ERROR: max < min + precision";
+    param->error = "max < min + precision";
     return false;
   }
   if(param->precision <= 0.0L) {
-    param->error = "ERROR: negative precision";
+    param->error = "zero or negative precision";
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
@@ -72,7 +72,7 @@ bool calculate(struct parameters *param) {
   if(round(ldexpl(param->upper_bound, -param->fractional_bits) / param->precision) * param->precision < param->max) param->upper_bound++;
 
   if(param->fixed_encoding_width > 64) {
-    param->error = "ERROR: fixed_encoding_width > 64";
+    param->error = "fixed_encoding_width > 64";
     return false;
   }
   if(param->fixed_encoding_width < 8) { // could disable this lower bound to support packed formats
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
     if(gen) gen_converter(&param);
     return 0;
   } else {
-    fprintf(stderr, "%s\n", param.error);
+    fprintf(stderr, "ERROR: %s\n", param.error);
     return -1;
   }
 }
