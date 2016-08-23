@@ -5,10 +5,10 @@ This program takes a range [min, max] and precision and calculates constants and
 #+BEGIN_EXAMPLE
 $ git clone ssh://git@stash.nestlabs.com:7999/user/fpc.git
 $ make
-$ ./fpc 30 1800 0.1
-min: 30.00 (30.00)
-max: 1800.00 (1800.00)
-precision: 0.06 (0.10)
+$ ./fpc -g 30 1800 0.1
+min: 30 (30)
+max: 1800 (1800)
+precision: 0.0625 (0.1)
 code density: 62.5%
 offset: 0
 code range: [480, 28800]
@@ -22,12 +22,16 @@ machine integer type: uint16_t
 #include <stdint.h>
 // can lose precision, for display only
 double convert_to_double(uint16_t x) {
-  if(x >= UINT16_C(480) &&
-     x <= UINT16_C(28800)) {
-    return fmax(30.00, fmin(1800.00, round((ldexp(x, -4) * 10.00) * 0.10)));
-  } else {
-    // invalid input
+  if(x < UINT16_C(480) &&
+     x > UINT16_C(28800)) {
     return NAN;
   }
+  return round(ldexp(x, -4) * 10) * 0.1;
 }
+$ make convert
+$ ./convert 480 600 10000 28800
+480 -> 30
+600 -> 37.5
+10000 -> 625
+28800 -> 1800
 #+END_EXAMPLE
