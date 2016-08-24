@@ -172,31 +172,34 @@ void convert_to_double(struct parameters *param, FILE *f) {
 }
 
 void print_params(struct parameters *param) {
-  printf("min: %.19Lg (%.19Lg)\n",
+  printf("[PARAMETERS]\n");
+  printf("  min: %.19Lg (%.19Lg requested)\n",
          ldexpl(param->lower_bound, -param->fractional_bits),
          param->min);
-  printf("max: %.19Lg (%.19Lg)\n",
+  printf("  max: %.19Lg (%.19Lg requested)\n",
          ldexpl(param->upper_bound, -param->fractional_bits),
          param->max);
   long double actual_precision = ldexpl(1.0L, -param->fractional_bits);
-  printf("precision: %.19Lg (%.19Lg)\n",
+  printf("  precision: %.19Lg (%.19Lg requested)\n",
          actual_precision,
          param->precision);
-  printf("code density: %.1Lf%%\n", 100L * actual_precision / param->precision);
+  printf("\n[CODE]\n");
+  printf("  code density: %.1Lf%%\n", 100L * actual_precision / param->precision);
   if(param->large_offset) {
-    printf("offset: about %.19Lg\n", (long double)param->offset);
+    printf("  offset: about %.19Lg\n", (long double)param->offset);
   } else {
-    printf("offset: %" PRId64 "\n", (int64_t)param->offset);
+    printf("  offset: %" PRId64 "\n", (int64_t)param->offset);
   }
-  printf("code range: [%" PRId64 ", %" PRId64 "]\n",
+  printf("  code range: [%" PRId64 ", %" PRId64 "]\n",
          (int64_t)(param->lower_bound - param->offset),
          (int64_t)(param->upper_bound - param->offset));
-  printf("machine bit width: %d\n", param->fixed_encoding_width);
-  printf("fractional bits: %d\n", param->fractional_bits);
-  printf("integer bits: %d\n", param->integer_bits);
-  printf("use signed: %s\n", param->use_signed ? "yes" : "no");
-  printf("machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
-  printf("\n");
+  printf("\n[ENCODING]\n");
+  printf("  machine bit width: %d (%d used)\n", param->fixed_encoding_width, param->integer_bits + param->fractional_bits);
+  printf("    fractional bits: %d\n", param->fractional_bits);
+  printf("    integer bits: %d\n", param->integer_bits);
+  printf("  use signed: %s\n", param->use_signed ? "yes" : "no");
+  printf("  machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
+  printf("\n[CONVERSION]\n");
   convert_to_double(param, stdout);
 }
 
