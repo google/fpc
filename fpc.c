@@ -199,6 +199,7 @@ void print_params(struct parameters *param) {
   printf("    integer bits: %d\n", param->integer_bits);
   printf("  use signed: %s\n", param->use_signed ? "yes" : "no");
   printf("  machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
+  printf("  Q notation: Q%c%d.%d\n", param->use_signed ? 's' : 'u', param->fixed_encoding_width - param->fractional_bits - (param->use_signed ? 1 : 0), param->fractional_bits); 
   printf("\n[CONVERSION]\n");
   convert_to_double(param, stdout);
 }
@@ -223,6 +224,48 @@ void gen_converter(struct parameters *param) {
   fclose(f);
 }
 
+
+long double eval_expr(char **pstr) {
+  char *p = *pstr;
+  long double a = strtold(p, &p), b = 0L;
+  do {
+    while(*p == ' ') p++;
+    char op = *p++;
+    if(!op || op == ')') break;
+    while(*p == ' ') p++;
+    if(!*p) break;
+    if(*p == '(') {
+      p++;
+      b = eval_expr(&p);
+    } else {
+      b = strtold(p, &p);
+    }
+    switch(op) {
+    case '+':
+      a += b;
+      break;
+    case '-':
+      a -= b;
+      break;
+    case '*':
+      a *= b;
+      break;
+    case '/':
+      a /= b;
+      break;
+    case '^':
+      a = powl(a, b);
+      break;
+    default:
+      a = NAN;
+      goto end;
+    }
+  } while(!isnan(a));
+end:
+  *pstr = p;
+  return a;
+}
+
 int main(int argc, char **argv) {
   struct parameters param;
   memset(&param, 0, sizeof(param));
@@ -235,9 +278,9 @@ int main(int argc, char **argv) {
     gen = true;
     argv++;
   }
-  param.min = strtold(argv[1], NULL);
-  param.max = strtold(argv[2], NULL);
-  param.precision = strtold(argv[3], NULL);
+  param.min = eval_expr(&argv[1]);
+  param.max = eval_expr(&argv[2]);
+  param.precision = eval_expr(&argv[3]);
 
   if(calculate(&param)) {
     print_params(&param);
