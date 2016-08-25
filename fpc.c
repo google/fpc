@@ -211,7 +211,7 @@ void print_params(struct parameters *param) {
   printf("    integer bits: %d\n", param->integer_bits);
   printf("  use signed: %s\n", param->use_signed ? "yes" : "no");
   printf("  machine integer type: %s%d_t\n", param->use_signed ? "int" : "uint", param->fixed_encoding_width);
-  printf("  Q notation: Q%c%d.%d\n", param->use_signed ? 's' : 'u', param->fixed_encoding_width - param->fractional_bits - (param->use_signed ? 1 : 0), param->fractional_bits); 
+  printf("  Q notation: Q%c%d.%d\n", param->use_signed ? 's' : 'u', param->fixed_encoding_width - param->fractional_bits - (param->use_signed ? 1 : 0), param->fractional_bits);
   printf("\n[CONVERSION]\n");
   convert_to_double(param, stdout);
 }
@@ -236,52 +236,70 @@ void gen_converter(struct parameters *param) {
   fclose(f);
 }
 
+const char *ops = "+a-a*b/b^c)";
+const char *get_op(char c) {
+  const char *op = ops;
+  while(*op) {
+    if(*op == c) return op;
+    op += 2;
+  }
+  return NULL;
+}
 
-long double eval_expr(char **pstr) {
+long double eval_expr(char **pstr);
+long double parse_num(char **pstr) {
   char *p = *pstr;
-  long double a = strtold(p, &p), b = 0L;
+  while(*p == ' ') p++;
+  if(*p == '(') {
+    *pstr = p + 1;
+    return eval_expr(pstr);
+  } else {
+    return strtold(*pstr, pstr);
+  }
+}
+
+long double _eval_expr(char **pstr, long double x, char prec) {
+  char *p = *pstr;
   do {
+    const char *op = get_op(*p);
+    if(!op) op = ops;
+    else p++;
+    long double y = parse_num(&p);
     while(*p == ' ') p++;
-    char op = *p++;
-    if(!op || op == ')') break;
-    while(*p == ' ') p++;
-    if(!*p) break;
-    if(*p == '(') {
-      p++;
-      b = eval_expr(&p);
-    } else {
-      b = strtold(p, &p);
-    }
-    switch(op) {
-    case '+':
-      a += b;
-      break;
-    case '-':
-      a -= b;
-      break;
-    case '*':
-      a *= b;
-      break;
-    case '/':
-      a /= b;
-      break;
-    case '^':
-      a = powl(a, b);
-      break;
+    const char *next_op = get_op(*p);
+    if(next_op && next_op[1] > op[1]) y = _eval_expr(&p, y, op[1]);
+    switch(*op) {
+    case '+': x += y; break;
+    case '-': x -= y; break;
+    case '*': x *= y; break;
+    case '/': x /= y; break;
+    case '^': x = powl(x, y); break;
+    case ')': break;
     default:
-      a = NAN;
+      x = NAN;
       goto end;
     }
-  } while(!isnan(a));
+    if(!next_op || next_op[1] <= prec) goto end;
+  } while(*p);
 end:
   *pstr = p;
-  return a;
+  return x;
+}
+
+long double eval_expr(char **pstr) {
+  long double x = _eval_expr(pstr, 0.0L, 0);
+  if(**pstr == ')') (*pstr)++;
+  return x;
 }
 
 int main(int argc, char **argv) {
   struct parameters param;
   memset(&param, 0, sizeof(param));
   bool gen = false;
+  if(argc == 2) {
+    printf("%Lg\n", eval_expr(&argv[1]));
+    return 0;
+  }
   if(argc <= 3) {
     printf("fpc [min] [max] [precision]\n");
     return -1;
