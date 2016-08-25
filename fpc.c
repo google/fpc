@@ -77,12 +77,8 @@ bool calculate(struct parameters *param) {
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
-  param->lower_bound = floorl(ldexpl(param->min, param->fractional_bits));
-  param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
-
-  // push out bounds slightly if needed due to rounding
-  if(param->lower_bound - param->min / param->precision > param->precision / 2) param->lower_bound--;
-  if(param->max / param->precision - param->upper_bound > param->precision / 2) param->upper_bound++;
+  param->lower_bound = ceill(ldexpl(param->min - param->precision / 2, param->fractional_bits));
+  param->upper_bound = floorl(ldexpl(param->max + param->precision / 2, param->fractional_bits));
 
   param->fixed_encoding_width = int128_log2(param->upper_bound - param->lower_bound + 1);
   param->integer_bits = param->fixed_encoding_width - param->fractional_bits;
@@ -155,11 +151,11 @@ void convert_to_double(struct parameters *param, FILE *f) {
 
   int paren = 0;
   printf("  return ");
-  if(param->min > ldexpl(param->lower_bound, -param->fractional_bits)) {
+  if(param->min > ldexpl(param->lower_bound, -param->fractional_bits) + param->precision / 2) {
     paren++;
     printf("fmax(%.19Lg, ", param->min);
   }
-  if(param->max < ldexpl(param->upper_bound, -param->fractional_bits)) {
+  if(param->max < ldexpl(param->upper_bound, -param->fractional_bits) - param->precision / 2) {
     paren++;
     printf("fmin(%.19Lg, ", param->max);
   }
