@@ -54,6 +54,21 @@ unsigned int int_log2(unsigned int x) {
   return x <= 1 ? 0 : (8 * sizeof(x)) - __builtin_clz(x - 1);
 }
 
+int clz128(int128_t x) {
+  unsigned int y;
+  unsigned int shift = sizeof(y) * 8;
+  int i, n = sizeof(x) / sizeof(y);
+  for(i = 0; i < n; i++) {
+    y = x >> (shift * (n - 1 - i));
+    if(y) return __builtin_clz(y) + shift * i;
+  }
+  return shift * n;
+}
+
+unsigned int int128_log2(int128_t x) {
+  return x <= 1 ? 0 : 128 - clz128(x - 1);
+}
+
 bool calculate(struct parameters *param) {
   if(param->max < param->min + param->precision) {
     param->error = "max < min + precision";
@@ -64,14 +79,15 @@ bool calculate(struct parameters *param) {
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
-  param->integer_bits = ceil_log2l(param->max - param->min + ldexpl(1.0L, -param->fractional_bits));
-  param->fixed_encoding_width = param->fractional_bits + param->integer_bits;
   param->lower_bound = floorl(ldexpl(param->min, param->fractional_bits));
   param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
 
   // push out bounds slightly if needed due to rounding
   if(ROUND(int128_t, param->lower_bound, param->fractional_bits) / param->precision > param->min / param->precision) param->lower_bound--;
   if(ROUND(int128_t, param->upper_bound, param->fractional_bits) / param->precision <  param->max / param->precision) param->upper_bound++;
+
+  param->fixed_encoding_width = int128_log2(param->upper_bound - param->lower_bound + 1);
+  param->integer_bits = param->fixed_encoding_width - param->fractional_bits;
 
   if(param->fixed_encoding_width > 64) {
     param->error = "fixed_encoding_width > 64";
