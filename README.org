@@ -35,3 +35,18 @@ $ ./convert 480 600 10000 28800
 10000 -> 625
 28800 -> 1800
 #+END_EXAMPLE
+
+- Also, check this out:
+#+BEGIN_EXAMPLE
+$ ./fpc '-(2^7)' '2^7-1' '2^-7'
+[PARAMETERS]
+  min: -128 (-128 requested)
+  max: 127 (127 requested)
+  precision: 0.0078125 (0.0078125 requested)
+...
+#+END_EXAMPLE
+
+=fpc= has an expression evaluator built in to allow simple expressions!
+- evaluated left-to-right
+- no operator precedence
+- parenthesis for grouping

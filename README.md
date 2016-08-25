@@ -35,3 +35,18 @@ This program takes a range [min, max] and precision and calculates constants and
     600 -> 37.5
     10000 -> 625
     28800 -> 1800
+
+-   Also, check this out:
+
+    $ ./fpc '-(2^7)' '2^7-1' '2^-7'
+    [PARAMETERS]
+      min: -128 (-128 requested)
+      max: 127 (127 requested)
+      precision: 0.0078125 (0.0078125 requested)
+    ...
+
+`fpc` has an expression evaluator built in to allow simple expressions!
+
+-   evaluated left-to-right
+-   no operator precedence
+-   parenthesis for grouping
