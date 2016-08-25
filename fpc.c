@@ -36,8 +36,6 @@ struct parameters {
   const char *error;
 };
 
-#define ROUND(t, x, s) ((x) < 0 ? ((((t)(x)) - (((t)1) << (s-1))) >> s) : ((((t)(x)) + (((t)1) << (s-1))) >> s))
-
 int ceil_log2l(long double x) {
   int exp;
   long double n = frexpl(x, &exp);
@@ -83,8 +81,8 @@ bool calculate(struct parameters *param) {
   param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
 
   // push out bounds slightly if needed due to rounding
-  if(ROUND(int128_t, param->lower_bound, param->fractional_bits) / param->precision > param->min / param->precision) param->lower_bound--;
-  if(ROUND(int128_t, param->upper_bound, param->fractional_bits) / param->precision <  param->max / param->precision) param->upper_bound++;
+  if(param->lower_bound - param->min / param->precision > param->precision / 2) param->lower_bound--;
+  if(param->max / param->precision - param->upper_bound > param->precision / 2) param->upper_bound++;
 
   param->fixed_encoding_width = int128_log2(param->upper_bound - param->lower_bound + 1);
   param->integer_bits = param->fixed_encoding_width - param->fractional_bits;
