@@ -64,7 +64,7 @@ bool calculate(struct parameters *param) {
     return false;
   }
   param->fractional_bits = -floor_log2l(param->precision);
-  param->integer_bits = ceil_log2l(param->max - param->min + param->precision);
+  param->integer_bits = ceil_log2l(param->max - param->min + ldexpl(1.0L, -param->fractional_bits));
   param->fixed_encoding_width = param->fractional_bits + param->integer_bits;
   param->lower_bound = floorl(ldexpl(param->min, param->fractional_bits));
   param->upper_bound = ceill(ldexpl(param->max, param->fractional_bits));
