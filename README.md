@@ -45,11 +45,11 @@ This program takes a range [min, max] and precision and calculates constants and
 
 # Also, check this out:
 
-    $ ./fpc '-(2^7)' '2^7-1' '2^-7'
+    $ ./fpc -2^7 -l-p 2^-8
     [PARAMETERS]
       min: -128 (-128 requested)
-      max: 127 (127 requested)
-      precision: 0.0078125 (0.0078125 requested)
+      max: 127.99609375 (127.99609375 requested)
+      precision: 0.00390625 (0.00390625 requested)
     ...
 
 `fpc` has an expression evaluator built in to allow simple expressions!
