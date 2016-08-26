@@ -6,6 +6,9 @@ CONVERT_LIBS := -lm
 CONVERT_SRC := convert.c
 CONVERT_OBJS := $(patsubst %.c, %.o, $(CONVERT_SRC))
 
+.PHONY: all
+all: test
+
 fpc: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $@
 
@@ -20,7 +23,7 @@ test_output:
 	./tests.sh &> test_output.txt
 
 .PHONY: test
-test:
+test: fpc
 	./tests.sh 2>&1 | diff -U 3 test_output.txt -
 
 .PHONY: clean
