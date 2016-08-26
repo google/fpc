@@ -4,54 +4,28 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
 #include <inttypes.h>
 #include <string.h>
+#include "fpc.h"
 
-typedef __int128_t int128_t;
+#if !defined(FPC_MAIN)
+#define FPC_MAIN 1
+#endif
 
-struct parameters {
-  /* these are the inputs */
-  long double
-    min,
-    max,
-    precision;
-
-  /* these can use more than fixed_encoding_width since there can be a _really_ large offset */
-  int128_t
-    lower_bound,
-    upper_bound,
-    offset;
-
-  int
-    fractional_bits,
-    integer_bits,
-    fixed_encoding_width;
-
-  bool
-    use_signed,
-    large_offset;
-
-  const char *error;
-};
-
-int ceil_log2l(long double x) {
-  int exp;
-  long double n = frexpl(x, &exp);
-  return n == 0.5L ? exp - 1 : exp;
-}
-
+static
 int floor_log2l(long double x) {
   int exp;
   frexpl(x, &exp);
   return exp - 1;
 }
 
+static
 unsigned int int_log2(unsigned int x) {
   return x <= 1 ? 0 : (8 * sizeof(x)) - __builtin_clz(x - 1);
 }
 
+static
 int clz128(int128_t x) {
   unsigned int y;
   unsigned int shift = sizeof(y) * 8;
@@ -63,11 +37,12 @@ int clz128(int128_t x) {
   return shift * n;
 }
 
+static
 unsigned int int128_log2(int128_t x) {
   return x <= 1 ? 0 : 128 - clz128(x - 1);
 }
 
-bool calculate(struct parameters *param) {
+bool fpc_calculate(struct fpc_parameters *param) {
   if(param->max < param->min + param->precision) {
     param->error = "max < min + precision";
     return false;
@@ -115,7 +90,8 @@ bool calculate(struct parameters *param) {
 
 #define max(x, y) ((y) > (x) ? (y) : (x))
 
-void convert_to_double(struct parameters *param, FILE *f) {
+static
+void convert_to_double(struct fpc_parameters *param, FILE *f) {
 #define printf(...) fprintf(f, __VA_ARGS__)
   int128_t
     lb = param->lower_bound - param->offset,
@@ -173,7 +149,8 @@ void convert_to_double(struct parameters *param, FILE *f) {
 #undef printf
 }
 
-void print_params(struct parameters *param) {
+static
+void print_params(struct fpc_parameters *param) {
   printf("[PARAMETERS]\n");
   printf("  min: %.19Lg (%.19Lg requested)\n",
          ldexpl(param->lower_bound, -param->fractional_bits),
@@ -206,7 +183,8 @@ void print_params(struct parameters *param) {
   convert_to_double(param, stdout);
 }
 
-void gen_converter(struct parameters *param) {
+static
+void gen_converter(struct fpc_parameters *param) {
   FILE *f = fopen("convert.c", "w");
   fprintf(f,
           "#include <stdio.h>\n"
@@ -226,7 +204,9 @@ void gen_converter(struct parameters *param) {
   fclose(f);
 }
 
-const char *ops = "+a-a*b/b^c)";
+static const char *ops = "+a-a*b/b^c)";
+
+static
 const char *get_op(char *cp, char **cpp) {
   char c = *cp;
   const char *op = ops;
@@ -241,9 +221,11 @@ const char *get_op(char *cp, char **cpp) {
   return ops;
 }
 
-char vars[16];
-long double values[sizeof(vars)];
-unsigned int n_vars = 0;
+static char vars[16];
+static long double values[sizeof(vars)];
+static unsigned int n_vars = 0;
+
+static
 void set_var(char c, long double x) {
   if(n_vars < sizeof(vars)) {
     int n = n_vars++;
@@ -252,13 +234,13 @@ void set_var(char c, long double x) {
   }
 }
 
-long double eval_expr(char **pstr);
+static
 long double parse_num(char **pstr) {
   char *p = *pstr;
   while(*p == ' ') p++;
   if(*p == '(') {
     *pstr = p + 1;
-    return eval_expr(pstr);
+    return fpc_eval_expr(pstr);
   } else {
     char *v = strchr(vars, *p);
     if(v) {
@@ -275,6 +257,7 @@ long double parse_num(char **pstr) {
   }
 }
 
+static
 long double _eval_expr(char **pstr, long double x, char prec) {
   char *p = *pstr;
   const char *next_op;
@@ -301,40 +284,51 @@ end:
   return x;
 }
 
-long double eval_expr(char **pstr) {
+long double fpc_eval_expr(char **pstr) {
   long double x = _eval_expr(pstr, 0.0L, 0);
   if(**pstr == ')') (*pstr)++;
   return x;
 }
 
+bool fpc_calculate_from_strings(char *min,
+                                char *max,
+                                char *precision,
+                                struct fpc_parameters *param) {
+  param->precision = fpc_eval_expr(&precision);
+  set_var('p', param->precision);
+  char *try = min;
+  param->min = fpc_eval_expr(&try);
+  set_var('l', param->min);
+  param->max = fpc_eval_expr(&max);
+  set_var('h', param->max);
+  // evaluate again for dependency on 'h'
+  if(isnan(param->min)) param->min = fpc_eval_expr(&min);
+  return fpc_calculate(param);
+}
+
+#if FPC_MAIN
 int main(int argc, char **argv) {
-  struct parameters param;
+  struct fpc_parameters param;
   memset(&param, 0, sizeof(param));
   bool gen = false;
+
   if(argc == 2) {
-    printf("%.19Lg\n", eval_expr(&argv[1]));
+    // simple expression evaluator
+    printf("%.19Lg\n", fpc_eval_expr(&argv[1]));
     return 0;
   }
+
   if(argc <= 3) {
     printf("fpc [min] [max] [precision]\n");
     return -1;
   }
+
   if(strcmp(argv[1], "-g") == 0) {
     gen = true;
     argv++;
   }
 
-  param.precision = eval_expr(&argv[3]);
-  set_var('p', param.precision);
-  char *try = argv[1];
-  param.min = eval_expr(&try);
-  set_var('l', param.min);
-  param.max = eval_expr(&argv[2]);
-  set_var('h', param.max);
-  // evaluate again for dependency on 'h'
-  if(isnan(param.min)) param.min = eval_expr(&argv[1]);
-
-  if(calculate(&param)) {
+  if(fpc_calculate_from_strings(argv[1], argv[2], argv[3], &param)) {
     print_params(&param);
     if(gen) gen_converter(&param);
     return 0;
@@ -343,3 +337,4 @@ int main(int argc, char **argv) {
     return -1;
   }
 }
+#endif
