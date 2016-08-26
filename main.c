@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 
   if(argc == 2) {
     // simple expression evaluator
-    printf("%.19Lg\n", fpc_eval_expr(&argv[1]));
+    printf("%.19Lg\n", fpc_eval_expr(argv[1]));
     return 0;
   }
 

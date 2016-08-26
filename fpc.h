@@ -43,10 +43,13 @@ bool fpc_calculate(struct fpc_parameters *param);
     - addition: `x + y`, subtraction: `x - y`
     add variables with fpc_set_var()
 */
-long double fpc_eval_expr(char **pstr);
+long double fpc_eval_expr(char *str);
 
 /* set a single letter variable for use in fpc_eval_expr() expressions */
 void fpc_set_var(char c, long double x);
+
+/* get a variable */
+long double *fpc_get_var(char c);
 
 /* alternative to fpc_calculate that takes string expressions
    defines the following variables:

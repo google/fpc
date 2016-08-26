@@ -81,21 +81,17 @@ bool fpc_calculate(struct fpc_parameters *param) {
   return true;
 }
 
-static const char *ops = "+a-a*b/b^c)";
-
 static
-const char *get_op(char *cp, char **cpp) {
-  char c = *cp;
+const char *get_op(char c) {
+  static const char *ops = "+a-a*b/b^c(())";
   const char *op = ops;
   while(*op) {
     if(*op == c) {
-      if(cpp) *cpp = cp + 1;
       return op;
     }
     op += 2;
   }
-  // return default (+)
-  return ops;
+  return NULL;
 }
 
 static char vars[16];
@@ -110,60 +106,65 @@ void fpc_set_var(char c, long double x) {
   }
 }
 
+long double *fpc_get_var(char c) {
+  char *v = strchr(vars, c);
+  return v ? &values[v - vars] : NULL;
+}
+
+static
+bool do_op(char op, long double *arg) {
+  switch(op) {
+  case '+': arg[0] += arg[1]; break;
+  case '-': arg[0] -= arg[1]; break;
+  case '*': arg[0] *= arg[1]; break;
+  case '/': arg[0] /= arg[1]; break;
+  case '^': arg[0] = powl(arg[0], arg[1]); break;
+  case '(': return false;
+  default: arg[0] = NAN; break;
+  }
+  return true;
+}
+
 static
 long double parse_num(char **pstr) {
   char *p = *pstr;
-  while(*p == ' ') p++;
-  if(*p == '(') {
-    *pstr = p + 1;
-    return fpc_eval_expr(pstr);
-  } else {
-    char *v = strchr(vars, *p);
-    if(v) {
-      *pstr = p + 1;
-      return values[v - vars];
+  long double val = strtold(*pstr, pstr);
+  if(*pstr != p) return val;
+  (*pstr)++;
+  long double *var = fpc_get_var(*p);
+  return var ? *var : NAN;
+}
+
+long double fpc_eval_expr(char *str) {
+  long double args[32];
+  const char *ops[32];
+  int arg_top = 0;
+  int op_top = 0;
+  char *p = str;
+  const char *op;
+  while(*p) {
+    while(*p == ' ') p++;
+    if(*p == '-' && !arg_top) args[arg_top++] = 0.0L;
+    op = get_op(*p);
+    while(*p == ' ') p++;
+    if(!op) {
+      args[arg_top++] = parse_num(&p);
     } else {
-      long double x = strtold(*pstr, pstr);
-      if(*pstr == p) {
-        *pstr = p + 1;
-        x = NAN;
+      p++;
+      if(*op == ')') {
+        while(op_top && arg_top >= 2 &&
+              do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+      } else {
+        while(op_top && arg_top >= 2 &&
+              op[1] <= (ops[op_top - 1])[1] &&
+              do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+        ops[op_top++] = op;
       }
-      return x;
     }
   }
-}
-
-static
-long double _eval_expr(char **pstr, long double x, char prec) {
-  char *p = *pstr;
-  const char *next_op;
-  do {
-    const char *op = get_op(p, &p);
-    long double y = parse_num(&p);
-    while(*p == ' ') p++;
-    next_op = get_op(p, NULL);
-    if(next_op[1] > op[1]) y = _eval_expr(&p, y, op[1]);
-    switch(*op) {
-    case '+': x += y; break;
-    case '-': x -= y; break;
-    case '*': x *= y; break;
-    case '/': x /= y; break;
-    case '^': x = powl(x, y); break;
-    default:
-      x = NAN;
-      goto end;
-    }
-  } while(!isnan(x) && *p && next_op[1] > prec);
-end:
-  if(*p == ')') p++;
-  *pstr = p;
-  return x;
-}
-
-long double fpc_eval_expr(char **pstr) {
-  long double x = _eval_expr(pstr, 0.0L, 0);
-  if(**pstr == ')') (*pstr)++;
-  return x;
+  while(op_top && arg_top >= 2 &&
+        do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+  return args[0];
 }
 
 #define LENGTH(x) (sizeof(x)/sizeof(x[0]))
@@ -190,8 +191,7 @@ bool fpc_calculate_from_strings(char *min,
     for(i = 0; i < LENGTH(entries); i++) {
       struct entry *e = &entries[i];
       if(e->complete) continue;
-      char *str = e->expr;
-      long double x = fpc_eval_expr(&str);
+      long double x = fpc_eval_expr(e->expr);
       if(!isnan(x)) {
         progress = true;
         left--;
