@@ -153,7 +153,7 @@ long double _eval_expr(char **pstr, long double x, char prec) {
       x = NAN;
       goto end;
     }
-  } while(*p && next_op[1] > prec);
+  } while(!isnan(x) && *p && next_op[1] > prec);
 end:
   if(*p == ')') p++;
   *pstr = p;
@@ -166,18 +166,40 @@ long double fpc_eval_expr(char **pstr) {
   return x;
 }
 
+#define LENGTH(x) (sizeof(x)/sizeof(x[0]))
+
 bool fpc_calculate_from_strings(char *min,
                                 char *max,
                                 char *precision,
                                 struct fpc_parameters *param) {
-  param->precision = fpc_eval_expr(&precision);
-  fpc_set_var('p', param->precision);
-  char *try = min;
-  param->min = fpc_eval_expr(&try);
-  fpc_set_var('l', param->min);
-  param->max = fpc_eval_expr(&max);
-  fpc_set_var('h', param->max);
-  // evaluate again for dependency on 'h'
-  if(isnan(param->min)) param->min = fpc_eval_expr(&min);
+  struct entry {
+    char *expr;
+    long double *dest;
+    char var;
+    bool complete;
+  } entries[] = {
+    { .expr = min,       .dest = &param->min,       .var = 'l'},
+    { .expr = max,       .dest = &param->max,       .var = 'h'},
+    { .expr = precision, .dest = &param->precision, .var = 'p'}
+  };
+
+  unsigned int i, left = LENGTH(entries);
+  bool progress;
+  do {
+    progress = false;
+    for(i = 0; i < LENGTH(entries); i++) {
+      struct entry *e = &entries[i];
+      if(e->complete) continue;
+      char *str = e->expr;
+      long double x = fpc_eval_expr(&str);
+      if(!isnan(x)) {
+        progress = true;
+        left--;
+        e->complete = true;
+        *(e->dest) = x;
+        fpc_set_var(e->var, x);
+      }
+    }
+  } while(left && progress);
   return fpc_calculate(param);
 }
