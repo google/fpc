@@ -285,12 +285,13 @@ long double parse_num(char **pstr) {
 
 long double _eval_expr(char **pstr, long double x, char prec) {
   char *p = *pstr;
+  const char *next_op;
   do {
     const char *op = get_op(p, &p);
     long double y = parse_num(&p);
     while(*p == ' ') p++;
-    const char *next_op = get_op(p, NULL);
-    if(next_op && next_op[1] > op[1]) y = _eval_expr(&p, y, op[1]);
+    next_op = get_op(p, NULL);
+    if(next_op[1] > op[1]) y = _eval_expr(&p, y, op[1]);
     switch(*op) {
     case '+': x += y; break;
     case '-': x -= y; break;
@@ -302,8 +303,7 @@ long double _eval_expr(char **pstr, long double x, char prec) {
       x = NAN;
       goto end;
     }
-    if(!next_op || next_op[1] <= prec) goto end;
-  } while(*p);
+  } while(*p && next_op[1] > prec);
 end:
   *pstr = p;
   return x;
