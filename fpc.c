@@ -243,11 +243,13 @@ const char *get_op(char *cp, char **cpp) {
 
 char vars[16];
 long double values[sizeof(vars)];
-int n_vars = 0;
+unsigned int n_vars = 0;
 void set_var(char c, long double x) {
-  int n = n_vars++;
-  vars[n] = c;
-  values[n] = x;
+  if(n_vars < sizeof(vars)) {
+    int n = n_vars++;
+    vars[n] = c;
+    values[n] = x;
+  }
 }
 
 long double eval_expr(char **pstr);
