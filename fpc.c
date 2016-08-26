@@ -237,13 +237,27 @@ void gen_converter(struct parameters *param) {
 }
 
 const char *ops = "+a-a*b/b^c)";
-const char *get_op(char c) {
+const char *get_op(char *cp, char **cpp) {
+  char c = *cp;
   const char *op = ops;
   while(*op) {
-    if(*op == c) return op;
+    if(*op == c) {
+      if(cpp) *cpp = cp + 1;
+      return op;
+    }
     op += 2;
   }
-  return NULL;
+  // return default (+)
+  return ops;
+}
+
+char vars[16];
+long double values[sizeof(vars)];
+int n_vars = 0;
+void set_var(char c, long double x) {
+  int n = n_vars++;
+  vars[n] = c;
+  values[n] = x;
 }
 
 long double eval_expr(char **pstr);
@@ -254,19 +268,23 @@ long double parse_num(char **pstr) {
     *pstr = p + 1;
     return eval_expr(pstr);
   } else {
-    return strtold(*pstr, pstr);
+    char *v = strchr(vars, *p);
+    if(v) {
+      *pstr = p + 1;
+      return values[v - vars];
+    } else {
+      return strtold(*pstr, pstr);
+    }
   }
 }
 
 long double _eval_expr(char **pstr, long double x, char prec) {
   char *p = *pstr;
   do {
-    const char *op = get_op(*p);
-    if(!op) op = ops;
-    else p++;
+    const char *op = get_op(p, &p);
     long double y = parse_num(&p);
     while(*p == ' ') p++;
-    const char *next_op = get_op(*p);
+    const char *next_op = get_op(p, NULL);
     if(next_op && next_op[1] > op[1]) y = _eval_expr(&p, y, op[1]);
     switch(*op) {
     case '+': x += y; break;
@@ -308,9 +326,12 @@ int main(int argc, char **argv) {
     gen = true;
     argv++;
   }
-  param.min = eval_expr(&argv[1]);
-  param.max = eval_expr(&argv[2]);
+
   param.precision = eval_expr(&argv[3]);
+  set_var('p', param.precision);
+  param.min = eval_expr(&argv[1]);
+  set_var('l', param.min);
+  param.max = eval_expr(&argv[2]);
 
   if(calculate(&param)) {
     print_params(&param);
