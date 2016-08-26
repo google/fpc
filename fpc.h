@@ -5,6 +5,7 @@
 
 typedef __int128_t int128_t;
 
+/* data structure for holding parameters and calculated values */
 struct fpc_parameters {
   /* these are the inputs */
   long double
@@ -30,8 +31,24 @@ struct fpc_parameters {
   const char *error;
 };
 
+/* given an fpc_parameters struct with min, max, precision,
+   calculate the other members */
 bool fpc_calculate(struct fpc_parameters *param);
+
+/* a simple expression evaluator
+   supports (in order of precedence)
+    - parenthesis: `(x)`
+    - exponentiation: `x ^ y`
+    - multiply: `x * y`, divide: `x / y`
+    - addition: `x + y`, subtraction: `x - y`
+    add variables with fpc_set_var()
+*/
 long double fpc_eval_expr(char **pstr);
+
+/* set a single letter variable for use in fpc_calculate() expressions */
+void fpc_set_var(char c, long double x);
+
+/* alternative to fpc_calculate that takes string expressions */
 bool fpc_calculate_from_strings(char *min,
                                 char *max,
                                 char *precision,

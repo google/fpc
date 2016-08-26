@@ -102,8 +102,7 @@ static char vars[16];
 static long double values[sizeof(vars)];
 static unsigned int n_vars = 0;
 
-static
-void set_var(char c, long double x) {
+void fpc_set_var(char c, long double x) {
   if(n_vars < sizeof(vars)) {
     int n = n_vars++;
     vars[n] = c;
@@ -172,12 +171,12 @@ bool fpc_calculate_from_strings(char *min,
                                 char *precision,
                                 struct fpc_parameters *param) {
   param->precision = fpc_eval_expr(&precision);
-  set_var('p', param->precision);
+  fpc_set_var('p', param->precision);
   char *try = min;
   param->min = fpc_eval_expr(&try);
-  set_var('l', param->min);
+  fpc_set_var('l', param->min);
   param->max = fpc_eval_expr(&max);
-  set_var('h', param->max);
+  fpc_set_var('h', param->max);
   // evaluate again for dependency on 'h'
   if(isnan(param->min)) param->min = fpc_eval_expr(&min);
   return fpc_calculate(param);
