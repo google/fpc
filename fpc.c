@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
   memset(&param, 0, sizeof(param));
   bool gen = false;
   if(argc == 2) {
-    printf("%Lg\n", eval_expr(&argv[1]));
+    printf("%.19Lg\n", eval_expr(&argv[1]));
     return 0;
   }
   if(argc <= 3) {
