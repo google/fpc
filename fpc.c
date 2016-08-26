@@ -94,7 +94,7 @@ bool calculate(struct parameters *param) {
   }
   param->offset = param->lower_bound;
   param->large_offset = false;
-  if(param->offset > (((int128_t)1) << 63) - 1 &&
+  if(param->offset > (((int128_t)1) << 63) - 1 ||
      param->offset < -(((int128_t)1) << 63)) {
     param->large_offset = true;
   }
@@ -149,16 +149,7 @@ void convert_to_double(struct parameters *param, FILE *f) {
       "  }\n");
   }
 
-  int paren = 0;
   printf("  return ");
-  if(param->min > ldexpl(param->lower_bound, -param->fractional_bits) + param->precision / 2) {
-    paren++;
-    printf("fmax(%.19Lg, ", param->min);
-  }
-  if(param->max < ldexpl(param->upper_bound, -param->fractional_bits) - param->precision / 2) {
-    paren++;
-    printf("fmin(%.19Lg, ", param->max);
-  }
   if(param->precision != 1.0l) {
     printf("round(");
   }
@@ -176,7 +167,6 @@ void convert_to_double(struct parameters *param, FILE *f) {
            1.0L / param->precision,
            param->precision);
   }
-  while(paren--) printf(")");
   printf(";\n");
 
   printf("}\n");
