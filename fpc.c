@@ -135,6 +135,7 @@ long double parse_num(char **pstr) {
   return var ? *var : NAN;
 }
 
+/* expression parser based on the shunting-yard algorithm */
 long double fpc_eval_expr(char *str) {
   long double args[32];
   const char *ops[32];
