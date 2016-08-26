@@ -30,5 +30,6 @@ test: fpc
 clean:
 	rm -f fpc
 	rm -f $(OBJS)
+	rm -f convert
 	rm -f $(CONVERT_SRC)
 	rm -f $(CONVERT_OBJS)
