@@ -54,9 +54,12 @@ This program takes a range [min, max] and precision and calculates constants and
 
 `fpc` has an expression evaluator built in to allow simple expressions!
 
--   supports
-    -   parenthesis
-    -   exponentiation `x ^ y`
-    -   multiply `x * y`, divide `x / y`
-    -   addition `x + y`, subtraction `x - y`
--   listed in order of precedence
+-   supports (in order of precedence)
+    -   parenthesis: `(x)`
+    -   exponentiation: `x ^ y`
+    -   multiply: `x * y`, divide: `x / y`
+    -   addition: `x + y`, subtraction: `x - y`
+-   some variables
+    -   min: `l`
+    -   max: `h`
+    -   precision: `p`
