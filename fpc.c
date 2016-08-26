@@ -149,13 +149,13 @@ long double _eval_expr(char **pstr, long double x, char prec) {
     case '*': x *= y; break;
     case '/': x /= y; break;
     case '^': x = powl(x, y); break;
-    case ')': break;
     default:
       x = NAN;
       goto end;
     }
   } while(*p && next_op[1] > prec);
 end:
+  if(*p == ')') p++;
   *pstr = p;
   return x;
 }
