@@ -1,0 +1,167 @@
+
+___[ fpc -256 -l-p 0.01 ]___
+[PARAMETERS]
+  min: -256 (-256 requested)
+  max: 255.9921875 (255.99 requested)
+  precision: 0.0078125 (0.01 requested)
+
+[CODE]
+  code density: 78.1%
+  offset: 0
+  code range: [-32768, 32767]
+
+[ENCODING]
+  machine bit width: 16 (16 used)
+    fractional bits: 7
+    integer bits: 9
+  use signed: yes
+  machine integer type: int16_t
+  Q notation: Qs8.7
+
+[CONVERSION]
+#include <math.h>
+#include <stdint.h>
+// can lose precision, for display only
+double convert_to_double(int16_t x) {
+  return round(ldexp(x, -7) * 100) * 0.01;
+}
+
+___[ fpc -512 -l-p 1 ]___
+[PARAMETERS]
+  min: -512 (-512 requested)
+  max: 511 (511 requested)
+  precision: 1 (1 requested)
+
+[CODE]
+  code density: 100.0%
+  offset: 0
+  code range: [-512, 511]
+
+[ENCODING]
+  machine bit width: 16 (10 used)
+    fractional bits: 0
+    integer bits: 10
+  use signed: yes
+  machine integer type: int16_t
+  Q notation: Qs15.0
+
+[CONVERSION]
+#include <math.h>
+#include <stdint.h>
+// can lose precision, for display only
+double convert_to_double(int16_t x) {
+  if(x < INT16_C(-512) &&
+     x > INT16_C(511)) {
+    return NAN;
+  }
+  return x;
+}
+
+___[ fpc 2^70 l+256 1 ]___
+[PARAMETERS]
+  min: 1.180591620717411303e+21 (1.180591620717411303e+21 requested)
+  max: 1.180591620717411304e+21 (1.180591620717411304e+21 requested)
+  precision: 1 (1 requested)
+
+[CODE]
+  code density: 100.0%
+  offset: about 1.180591620717411303e+21
+  code range: [0, 256]
+
+[ENCODING]
+  machine bit width: 16 (9 used)
+    fractional bits: 0
+    integer bits: 9
+  use signed: no
+  machine integer type: uint16_t
+  Q notation: Qu16.0
+
+[CONVERSION]
+#include <math.h>
+#include <stdint.h>
+// can lose precision, for display only
+double convert_to_double(uint16_t x) {
+  if(x > UINT16_C(256)) {
+    return NAN;
+  }
+  return (x + 1.180591620717411303e+21);
+}
+
+___[ fpc 1 2 3 ]___
+ERROR: max < min + precision
+
+___[ fpc 2 1 1 ]___
+ERROR: max < min + precision
+
+___[ fpc 1 2 0 ]___
+ERROR: zero or negative precision
+
+___[ fpc 1+2*3^4 ]___
+163
+
+___[ fpc (1+2)*3 ]___
+9
+
+___[ fpc -2^7 ]___
+-128
+
+___[ fpc -h-p 2^8-p 0.01 ]___
+[PARAMETERS]
+  min: -256 (-256 requested)
+  max: 255.9921875 (255.99 requested)
+  precision: 0.0078125 (0.01 requested)
+
+[CODE]
+  code density: 78.1%
+  offset: 0
+  code range: [-32768, 32767]
+
+[ENCODING]
+  machine bit width: 16 (16 used)
+    fractional bits: 7
+    integer bits: 9
+  use signed: yes
+  machine integer type: int16_t
+  Q notation: Qs8.7
+
+[CONVERSION]
+#include <math.h>
+#include <stdint.h>
+// can lose precision, for display only
+double convert_to_double(int16_t x) {
+  return round(ldexp(x, -7) * 100) * 0.01;
+}
+
+___[ fpc -2^63 -l-p 1 ]___
+[PARAMETERS]
+  min: -9223372036854775808 (-9223372036854775808 requested)
+  max: 9223372036854775807 (9223372036854775807 requested)
+  precision: 1 (1 requested)
+
+[CODE]
+  code density: 100.0%
+  offset: 0
+  code range: [-9223372036854775808, 9223372036854775807]
+
+[ENCODING]
+  machine bit width: 64 (64 used)
+    fractional bits: 0
+    integer bits: 64
+  use signed: yes
+  machine integer type: int64_t
+  Q notation: Qs63.0
+
+[CONVERSION]
+#include <math.h>
+#include <stdint.h>
+// can lose precision, for display only
+double convert_to_double(int64_t x) {
+  if(x < INT64_C(-9223372036854775808) &&
+     x > INT64_C(9223372036854775807)) {
+    return NAN;
+  }
+  return x;
+}
+
+___[ fpc -2^63 -l 1 ]___
+ERROR: fixed_encoding_width > 64
