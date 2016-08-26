@@ -45,10 +45,15 @@ bool fpc_calculate(struct fpc_parameters *param);
 */
 long double fpc_eval_expr(char **pstr);
 
-/* set a single letter variable for use in fpc_calculate() expressions */
+/* set a single letter variable for use in fpc_eval_expr() expressions */
 void fpc_set_var(char c, long double x);
 
-/* alternative to fpc_calculate that takes string expressions */
+/* alternative to fpc_calculate that takes string expressions
+   defines the following variables:
+   - l = min
+   - h = max
+   - p = precision
+*/
 bool fpc_calculate_from_strings(char *min,
                                 char *max,
                                 char *precision,
