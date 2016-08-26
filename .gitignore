@@ -2,3 +2,5 @@
 *~
 /convert.c
 /convert
+*.o
+/.tramp_history
