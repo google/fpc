@@ -273,7 +273,12 @@ long double parse_num(char **pstr) {
       *pstr = p + 1;
       return values[v - vars];
     } else {
-      return strtold(*pstr, pstr);
+      long double x = strtold(*pstr, pstr);
+      if(*pstr == p) {
+        *pstr = p + 1;
+        x = NAN;
+      }
+      return x;
     }
   }
 }
@@ -329,9 +334,13 @@ int main(int argc, char **argv) {
 
   param.precision = eval_expr(&argv[3]);
   set_var('p', param.precision);
-  param.min = eval_expr(&argv[1]);
+  char *try = argv[1];
+  param.min = eval_expr(&try);
   set_var('l', param.min);
   param.max = eval_expr(&argv[2]);
+  set_var('h', param.max);
+  // evaluate again for dependency on 'h'
+  if(isnan(param.min)) param.min = eval_expr(&argv[1]);
 
   if(calculate(&param)) {
     print_params(&param);
