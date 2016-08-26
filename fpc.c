@@ -1,11 +1,8 @@
 // Dustin DeWeese (deweese@nestlabs.com)
 // 2016
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
-#include <inttypes.h>
 #include <string.h>
 #include "fpc.h"
 
