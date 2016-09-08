@@ -6,6 +6,8 @@
 #include <string.h>
 #include "fpc.h"
 
+#define LENGTH(x) (sizeof(x)/sizeof(x[0]))
+
 static
 int floor_log2l(long double x) {
   int exp;
@@ -139,36 +141,58 @@ long double parse_num(char **pstr) {
 long double fpc_eval_expr(char *str) {
   long double args[32];
   const char *ops[32];
-  int arg_top = 0;
-  int op_top = 0;
+  unsigned int arg_top = 0;
+  unsigned int op_top = 0;
+  bool expect_num = true;
   char *p = str;
   const char *op;
   while(*p) {
     while(*p == ' ') p++;
-    if(*p == '-' && !arg_top) args[arg_top++] = 0.0L;
+    if(*p == '-' && !arg_top) {
+      args[arg_top++] = 0.0L;
+      expect_num = false;
+    }
     op = get_op(*p);
     while(*p == ' ') p++;
     if(!op) {
+      if(!expect_num) return NAN;
+      if(arg_top >= LENGTH(args)) return NAN;
       args[arg_top++] = parse_num(&p);
+      expect_num = false;
     } else {
+      if(expect_num && *op != '(') return NAN;
       p++;
       if(*op == ')') {
-        while(op_top && arg_top >= 2 &&
-              do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+        while(op_top &&
+              do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
+          arg_top--;
+          op_top--;
+        }
+        if(!op_top) return NAN;
+        op_top--;
+        expect_num = false;
       } else {
-        while(op_top && arg_top >= 2 &&
+        while(op_top &&
               op[1] <= (ops[op_top - 1])[1] &&
-              do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+              do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
+          arg_top--;
+          op_top--;
+        }
+        if(op_top >= LENGTH(ops)) return NAN;
         ops[op_top++] = op;
+        expect_num = true;
       }
     }
   }
-  while(op_top && arg_top >= 2 &&
-        do_op(*(ops[--op_top]), &args[arg_top - 2])) arg_top--;
+  if(expect_num) return NAN;
+  while(op_top &&
+        do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
+    arg_top--;
+    op_top--;
+  }
+  if(op_top) return NAN;
   return args[0];
 }
-
-#define LENGTH(x) (sizeof(x)/sizeof(x[0]))
 
 bool fpc_calculate_from_strings(char *min,
                                 char *max,
