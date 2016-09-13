@@ -154,7 +154,7 @@ long double fpc_eval_expr(char *str) {
     }
     op = get_op(*p);
     while(*p == ' ') p++;
-    if(!op) {
+    if(!op || (*op == '-' && expect_num)) {
       if(!expect_num) return NAN;
       if(arg_top >= LENGTH(args)) return NAN;
       args[arg_top++] = parse_num(&p);

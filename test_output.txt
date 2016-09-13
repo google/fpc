@@ -168,3 +168,6 @@ double convert_to_double(int64_t x) {
 
 ___[ fpc -2^63 -l 1 ]___
 ERROR: fixed_encoding_width > 64
+
+___[ fpc 2^-7 ]___
+0.0078125

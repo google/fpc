@@ -19,5 +19,6 @@ fpc -2^7
 fpc -h-p 2^8-p 0.01
 fpc -2^63 -l-p 1
 fpc -2^63 -l 1
+fpc 2^-7
 
 exit 0
