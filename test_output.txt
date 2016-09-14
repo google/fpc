@@ -171,3 +171,6 @@ ERROR: fixed_encoding_width > 64
 
 ___[ fpc 2^-7 ]___
 0.0078125
+
+___[ fpc -(1) ]___
+-1

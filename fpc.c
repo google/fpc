@@ -159,8 +159,12 @@ long double fpc_eval_expr(char *str) {
       if(arg_top >= LENGTH(args)) return NAN;
       args[arg_top++] = parse_num(&p);
       expect_num = false;
+    } else if(*op == '(') {
+      if(!expect_num) return NAN;
+      p++;
+      ops[op_top++] = op;
     } else {
-      if(expect_num && *op != '(') return NAN;
+      if(expect_num) return NAN;
       p++;
       if(*op == ')') {
         while(op_top &&
