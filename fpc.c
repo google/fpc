@@ -148,40 +148,38 @@ long double fpc_eval_expr(char *str) {
   const char *op;
   while(*p) {
     while(*p == ' ') p++;
-    if(*p == '-' && !arg_top) {
-      args[arg_top++] = 0.0L;
-      expect_num = false;
-    }
     op = get_op(*p);
     while(*p == ' ') p++;
-    if(!op || (*op == '-' && expect_num)) {
+    if(!op) {
       if(!expect_num) return NAN;
       if(arg_top >= LENGTH(args)) return NAN;
       args[arg_top++] = parse_num(&p);
       expect_num = false;
     } else if(*op == '(') {
-      if(!expect_num) return NAN;
       p++;
+      if(!expect_num) return NAN;
       ops[op_top++] = op;
     } else {
-      if(expect_num) return NAN;
       p++;
+      if(expect_num) {
+        if(*op == '-') {
+          args[arg_top++] = -1.0L;
+          op += 2;
+          goto checks;
+        } else return NAN;
+      }
+      while(op_top &&
+            op[1] <= (ops[op_top - 1])[1] &&
+            do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
+        arg_top--;
+        op_top--;
+      }
+    checks:
       if(*op == ')') {
-        while(op_top &&
-              do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
-          arg_top--;
-          op_top--;
-        }
         if(!op_top) return NAN;
         op_top--;
         expect_num = false;
       } else {
-        while(op_top &&
-              op[1] <= (ops[op_top - 1])[1] &&
-              do_op(*(ops[op_top - 1]), &args[arg_top - 2])) {
-          arg_top--;
-          op_top--;
-        }
         if(op_top >= LENGTH(ops)) return NAN;
         ops[op_top++] = op;
         expect_num = true;

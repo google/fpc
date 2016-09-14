@@ -21,5 +21,6 @@ fpc -2^63 -l-p 1
 fpc -2^63 -l 1
 fpc 2^-7
 fpc '-(1)'
+fpc '-2^-(2)'
 
 exit 0
