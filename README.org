@@ -1,6 +1,8 @@
 * Fixed-point Calculator
 This program takes a range [min, max] and precision and calculates constants and information to be used in code performing calculations in this range using fixed-point integer math.
 
+This is not an official Google product.
+
 * Try it!
 #+BEGIN_EXAMPLE
 $ git clone ssh://git@stash.nestlabs.com:7999/user/fpc.git
