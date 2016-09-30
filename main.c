@@ -87,7 +87,7 @@ void convert_from_double(struct fpc_parameters *param, FILE *f) {
   printf("  if(x < %Lg || x > %Lg) {\n", param->min, param->max);
   printf("    return false;\n"
          "  } else {\n");
-  printf("    *y = round(ldexp(x, %d));\n", param->fractional_bits);
+  printf("    *y = round(ldexp(x, %d)) - %.19Lg;\n", param->fractional_bits, (long double)param->offset);
   printf("    return true;\n"
          "  }\n"
          "}\n");
