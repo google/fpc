@@ -19,11 +19,17 @@ ___[ fpc -256 -l-p 0.01 ]___
   Q notation: Qs8.7
 
 [CONVERSION]
-#include <math.h>
-#include <stdint.h>
-// can lose precision, for display only
 double convert_to_double(int16_t x) {
   return round(ldexp(x, -7) * 100) * 0.01;
+}
+
+bool convert_from_double(double x, int16_t *y) {
+  if(x < -256 || x > 255.99) {
+    return false;
+  } else {
+    *y = round(ldexp(x, 7));
+    return true;
+  }
 }
 
 ___[ fpc -512 -l-p 1 ]___
@@ -46,15 +52,21 @@ ___[ fpc -512 -l-p 1 ]___
   Q notation: Qs15.0
 
 [CONVERSION]
-#include <math.h>
-#include <stdint.h>
-// can lose precision, for display only
 double convert_to_double(int16_t x) {
-  if(x < INT16_C(-512) &&
+  if(x < INT16_C(-512) ||
      x > INT16_C(511)) {
     return NAN;
   }
   return x;
+}
+
+bool convert_from_double(double x, int16_t *y) {
+  if(x < -512 || x > 511) {
+    return false;
+  } else {
+    *y = round(ldexp(x, 0));
+    return true;
+  }
 }
 
 ___[ fpc 2^70 l+256 1 ]___
@@ -77,14 +89,20 @@ ___[ fpc 2^70 l+256 1 ]___
   Q notation: Qu16.0
 
 [CONVERSION]
-#include <math.h>
-#include <stdint.h>
-// can lose precision, for display only
 double convert_to_double(uint16_t x) {
   if(x > UINT16_C(256)) {
     return NAN;
   }
   return (x + 1.180591620717411303e+21);
+}
+
+bool convert_from_double(double x, uint16_t *y) {
+  if(x < 1.18059e+21 || x > 1.18059e+21) {
+    return false;
+  } else {
+    *y = round(ldexp(x, 0));
+    return true;
+  }
 }
 
 ___[ fpc 1 2 3 ]___
@@ -128,11 +146,17 @@ ___[ fpc -h-p 2^8-p 0.01 ]___
   Q notation: Qs8.7
 
 [CONVERSION]
-#include <math.h>
-#include <stdint.h>
-// can lose precision, for display only
 double convert_to_double(int16_t x) {
   return round(ldexp(x, -7) * 100) * 0.01;
+}
+
+bool convert_from_double(double x, int16_t *y) {
+  if(x < -256 || x > 255.99) {
+    return false;
+  } else {
+    *y = round(ldexp(x, 7));
+    return true;
+  }
 }
 
 ___[ fpc -2^63 -l-p 1 ]___
@@ -155,15 +179,21 @@ ___[ fpc -2^63 -l-p 1 ]___
   Q notation: Qs63.0
 
 [CONVERSION]
-#include <math.h>
-#include <stdint.h>
-// can lose precision, for display only
 double convert_to_double(int64_t x) {
-  if(x < INT64_C(-9223372036854775808) &&
+  if(x < INT64_C(-9223372036854775808) ||
      x > INT64_C(9223372036854775807)) {
     return NAN;
   }
   return x;
+}
+
+bool convert_from_double(double x, int64_t *y) {
+  if(x < -9.22337e+18 || x > 9.22337e+18) {
+    return false;
+  } else {
+    *y = round(ldexp(x, 0));
+    return true;
+  }
 }
 
 ___[ fpc -2^63 -l 1 ]___

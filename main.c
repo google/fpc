@@ -29,10 +29,7 @@ void convert_to_double(struct fpc_parameters *param, FILE *f) {
     ub = param->upper_bound - param->offset,
     min_int = param->use_signed ? -(1 << (param->fixed_encoding_width - 1)) : 0,
     max_int = (1 << (param->fixed_encoding_width - (param->use_signed ? 1 : 0))) - 1;
-  printf("#include <math.h>\n"
-         "#include <stdint.h>\n"
-         "// can lose precision, for display only\n"
-         "double convert_to_double(%s%d_t x) {\n",
+  printf("double convert_to_double(%s%d_t x) {\n",
          param->use_signed ? "int" : "uint", param->fixed_encoding_width);
 
   // Check bounds
@@ -43,7 +40,7 @@ void convert_to_double(struct fpc_parameters *param, FILE *f) {
              param->use_signed ? "INT" : "UINT",
              param->fixed_encoding_width,
              (long long int)lb);
-      if(ub != max_int) printf(" &&\n     ");
+      if(ub != max_int) printf(" ||\n     ");
     }
     if(ub != max_int) {
       printf("x > %s%d_C(%lld)",
@@ -81,6 +78,24 @@ void convert_to_double(struct fpc_parameters *param, FILE *f) {
 }
 
 static
+void convert_from_double(struct fpc_parameters *param, FILE *f) {
+#define printf(...) fprintf(f, __VA_ARGS__)
+  printf("bool convert_from_double(double x, %s%d_t *y) {\n",
+         param->use_signed ? "int" : "uint", param->fixed_encoding_width);
+
+  // Check bounds
+  printf("  if(x < %Lg || x > %Lg) {\n", param->min, param->max);
+  printf("    return false;\n"
+         "  } else {\n");
+  printf("    *y = round(ldexp(x, %d));\n", param->fractional_bits);
+  printf("    return true;\n"
+         "  }\n"
+         "}\n");
+
+#undef printf
+}
+
+static
 void print_params(struct fpc_parameters *param) {
   printf("[PARAMETERS]\n");
   printf("  min: %.19Lg (%.19Lg requested)\n",
@@ -112,26 +127,46 @@ void print_params(struct fpc_parameters *param) {
   printf("  Q notation: Q%c%d.%d\n", param->use_signed ? 's' : 'u', param->fixed_encoding_width - param->fractional_bits - (param->use_signed ? 1 : 0), param->fractional_bits);
   printf("\n[CONVERSION]\n");
   convert_to_double(param, stdout);
+  printf("\n");
+  convert_from_double(param, stdout);
 }
 
 static
 void gen_converter(struct fpc_parameters *param) {
   FILE *f = fopen("convert.c", "w");
   fprintf(f,
+          "#include <math.h>\n"
+          "#include <stdint.h>\n"
+          "#include <stdbool.h>\n"
           "#include <stdio.h>\n"
-          "#include <stdlib.h>\n\n");
+          "#include <stdlib.h>\n"
+          "#include <string.h>\n\n");
   convert_to_double(param, f);
+  fprintf(f, "\n");
+  convert_from_double(param, f);
   fprintf(f,
           "\n"
           "int main(int argc, char **argv) {\n"
           "  int i;\n"
           "  argv++; argc--; // skip first arg\n"
           "  for(i = 0; i < argc; i++) {\n"
-          "    long int x = strtol(argv[i], NULL, 10);\n"
-          "    printf(\"%%ld -> %%.15g\\n\", x, convert_to_double(x));\n"
+          "    char *s = argv[i];\n"
+          "    if(strchr(s, '.')) {\n"
+          "      double x = strtod(s, &s);\n"
+          "      %s%d_t y;\n"
+          "      if(convert_from_double(x, &y)) {\n"
+          "        printf(\"float %%.15g -> fixed %%ld\\n\", x, (long int)y);\n"
+          "      } else {\n"
+          "        printf(\"float %%.15g -> ERROR\\n\", x);\n"
+          "      }\n"
+          "    } else {\n"
+          "      long int x = strtol(s, NULL, 10);\n"
+          "      printf(\"fixed %%ld -> float %%.15g\\n\", x, convert_to_double(x));\n"
+          "    }\n"
           "  }\n"
           "  return 0;\n"
-          "}\n");
+          "}\n",
+          param->use_signed ? "int" : "uint", param->fixed_encoding_width);
   fclose(f);
 }
 
