@@ -100,7 +100,7 @@ bool convert_from_double(double x, uint16_t *y) {
   if(x < 1.18059e+21 || x > 1.18059e+21) {
     return false;
   } else {
-    *y = round(ldexp(x, 0));
+    *y = round(ldexp(x, 0)) - 1.180591620717411303e+21;
     return true;
   }
 }
