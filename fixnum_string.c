@@ -141,7 +141,7 @@ int show_float(char *buf, size_t size, int exponent, int mantissa) {
       n /= RADIX;
       exponent++;
     }
-  
+
     if(cursor >= end) return -EOVERFLOW;
     *cursor++ = '.';
   }
@@ -202,12 +202,16 @@ uint64_t exp_radix(unsigned int n) {
   return x;
 }
 
+#define SIGN(x, y) ((x) < 0 ? -(y) : (y))
+#define ROUND(type, frac, x) (((x) + SIGN((x), (1 << ((frac) - 1)))) >> (frac))
+#define CEILING(type, frac, x) (((x) + (((type)1) << (frac)) - 1) >> (frac))
+
 int32_t float_to_fixed(int exponent, int32_t mantissa, unsigned int fractional_bits) {
   int64_t fixed = (int64_t)mantissa << fractional_bits;
   if(exponent < 0) {
-    int64_t divisor = exp_radix(-exponent);
-    fixed += divisor - 1;
+    int64_t divisor = exp_radix(-exponent) / 2;
     fixed /= divisor;
+    fixed = (fixed + SIGN(mantissa, 1)) / 2;
   } else {
     fixed *= exp_radix(exponent);
   }
@@ -215,8 +219,8 @@ int32_t float_to_fixed(int exponent, int32_t mantissa, unsigned int fractional_b
 }
 
 int fixed_to_float(unsigned int fractional_bits, int32_t fixed, int *exponent_out) {
-  int exponent = (((uint64_t)fractional_bits * LOG2_RATIO) + (1 << 31)) >> 32;
-  int floating = fixed * exp_radix(exponent) >> fractional_bits;
+  int exponent = CEILING(uint64_t, 32, (uint64_t)fractional_bits * LOG2_RATIO);
+  int floating = ROUND(int64_t, fractional_bits, fixed * exp_radix(exponent));
 
   // trim zeroes
   while(floating % RADIX == 0 && exponent > 0) {
